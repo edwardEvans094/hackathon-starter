@@ -19,9 +19,28 @@ const expressValidator = require('express-validator');
 const expressStatusMonitor = require('express-status-monitor');
 const sass = require('node-sass-middleware');
 const multer = require('multer');
-
+const redis = require('redis');
 const upload = multer({ dest: path.join(__dirname, 'uploads') });
 
+
+const clientClient = redis.createClient(process.env.REDIS_PORT);
+
+function cacheMiddleware(req, res, next) {
+  console.log('---------cache', req.originalUrl)
+  const key = req.originalUrl;
+  clientClient.get(org, function (err, data) {
+      if (err) {
+        console.log(err);
+        return next()
+      }
+
+      if (data != null) {
+        return res.send(data);
+      } else {
+        return next();
+      }
+  });
+}
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
@@ -143,6 +162,7 @@ app.get('/account/unlink/:provider', passportConfig.isAuthenticated, userControl
 /**
  * API examples routes.
  */
+app.get('*', cacheMiddleware)
 app.get('/api', apiController.getApi);
 app.get('/api/lastfm', apiController.getLastfm);
 app.get('/api/nyt', apiController.getNewYorkTimes);
