@@ -16,21 +16,26 @@ const upload = multer({ dest: path.join(__dirname, 'uploads') });
 
 
 
+const TokenRoutes = require("./routes/token.route")
 
-const clientClient = redis.createClient(process.env.REDIS_PORT);
 
-function cacheMiddleware(req, res, next) {
-  console.log('---------cache', req.originalUrl)
-  const key = req.originalUrl;
-  clientClient.get(key, function (err, data) {
+const redisClient = redis.createClient(process.env.REDIS_PORT);
+
+const cacheMiddleware = (req, res, next) => {
+  const key = "___super_api__" + req.originalUrl || req.url;
+  redisClient.get(key, (err, cachedBody) => {
       if (err) {
         console.log(err);
         return next()
       }
-
-      if (data != null) {
+      if (cachedBody) {
         return res.send(data);
       } else {
+        res.sendResponse = res.send
+        res.send = (body) => {
+          redisClient.set(key, body, 'EX', process.env.REDIS_TTL);
+          res.sendResponse(body)
+        }
         return next();
       }
   });
@@ -87,46 +92,51 @@ app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/bootstrap/d
 app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/jquery/dist'), { maxAge: 31557600000 }));
 app.use('/webfonts', express.static(path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free/webfonts'), { maxAge: 31557600000 }));
 
+
+app.get('*', cacheMiddleware)
+
+
+app.use('/token', TokenRoutes)
 /**
  * Primary app routes.
  */
-app.get('/', homeController.index);
-app.get('/login', userController.getLogin);
-app.post('/login', userController.postLogin);
-app.get('/logout', userController.logout);
-app.get('/forgot', userController.getForgot);
-app.post('/forgot', userController.postForgot);
-app.get('/reset/:token', userController.getReset);
-app.post('/reset/:token', userController.postReset);
-app.get('/signup', userController.getSignup);
-app.post('/signup', userController.postSignup);
-app.get('/contact', contactController.getContact);
-app.post('/contact', contactController.postContact);
+// app.get('/', homeController.index);
+// app.get('/login', userController.getLogin);
+// app.post('/login', userController.postLogin);
+// app.get('/logout', userController.logout);
+// app.get('/forgot', userController.getForgot);
+// app.post('/forgot', userController.postForgot);
+// app.get('/reset/:token', userController.getReset);
+// app.post('/reset/:token', userController.postReset);
+// app.get('/signup', userController.getSignup);
+// app.post('/signup', userController.postSignup);
+// app.get('/contact', contactController.getContact);
+// app.post('/contact', contactController.postContact);
 
 /**
  * API examples routes.
  */
-app.get('*', cacheMiddleware)
-app.get('/api', apiController.getApi);
-app.get('/api/lastfm', apiController.getLastfm);
-app.get('/api/nyt', apiController.getNewYorkTimes);
-app.get('/api/aviary', apiController.getAviary);
 
-app.get('/api/stripe', apiController.getStripe);
-app.post('/api/stripe', apiController.postStripe);
-app.get('/api/scraping', apiController.getScraping);
-app.get('/api/twilio', apiController.getTwilio);
-app.post('/api/twilio', apiController.postTwilio);
-app.get('/api/clockwork', apiController.getClockwork);
-app.post('/api/clockwork', apiController.postClockwork);
+// app.get('/api', apiController.getApi);
+// app.get('/api/lastfm', apiController.getLastfm);
+// app.get('/api/nyt', apiController.getNewYorkTimes);
+// app.get('/api/aviary', apiController.getAviary);
 
-app.get('/api/paypal', apiController.getPayPal);
-app.get('/api/paypal/success', apiController.getPayPalSuccess);
-app.get('/api/paypal/cancel', apiController.getPayPalCancel);
-app.get('/api/lob', apiController.getLob);
-app.get('/api/upload', apiController.getFileUpload);
-app.post('/api/upload', upload.single('myFile'), apiController.postFileUpload);
-app.get('/api/google-maps', apiController.getGoogleMaps);
+// app.get('/api/stripe', apiController.getStripe);
+// app.post('/api/stripe', apiController.postStripe);
+// app.get('/api/scraping', apiController.getScraping);
+// app.get('/api/twilio', apiController.getTwilio);
+// app.post('/api/twilio', apiController.postTwilio);
+// app.get('/api/clockwork', apiController.getClockwork);
+// app.post('/api/clockwork', apiController.postClockwork);
+
+// app.get('/api/paypal', apiController.getPayPal);
+// app.get('/api/paypal/success', apiController.getPayPalSuccess);
+// app.get('/api/paypal/cancel', apiController.getPayPalCancel);
+// app.get('/api/lob', apiController.getLob);
+// app.get('/api/upload', apiController.getFileUpload);
+// app.post('/api/upload', upload.single('myFile'), apiController.postFileUpload);
+// app.get('/api/google-maps', apiController.getGoogleMaps);
 
 
 if (process.env.NODE_ENV === 'development') {
