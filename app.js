@@ -18,7 +18,6 @@ const rateLimit = require("express-rate-limit");
 
 const TokenRoutes = require("./routes/token.route")
 
-
 const redisClient = redis.createClient(process.env.REDIS_PORT);
 
 const cacheMiddleware = (req, res, next) => {
