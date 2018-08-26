@@ -1,8 +1,8 @@
 const KError = require('./kError')
 
-export class ServerError extends KError {
+module.exports = class ServerError extends KError {
   constructor(additional_data) {
-        super(additional_data);
+        super();
         this.additional_data = additional_data;
         this.reason = "server_error";
     }

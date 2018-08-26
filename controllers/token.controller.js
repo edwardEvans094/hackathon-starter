@@ -1,5 +1,13 @@
+const Errors = require("../ultils/errors")
+
 const TokenControllers = {
   handleGetSupportTokens: (req, res) => {
+    const isError = req.query.isError;
+    if(isError){
+      return res.send(new Errors.ParamError('this is additional data from content error'))
+    }
+
+    res.isCache = true
     return res.send(
       {
         suportTokens: [
