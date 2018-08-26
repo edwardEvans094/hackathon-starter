@@ -29,10 +29,13 @@ const cacheMiddleware = (req, res, next) => {
         return next()
       }
       if (cachedBody) {
-        return res.send(data);
+        console.log("---------already cached: ", cachedBody)
+        return res.send(cachedBody);
       } else {
+        console.log("---------not cached: ")
         res.sendResponse = res.send
         res.send = (body) => {
+          console.log("__________________cached before send")
           redisClient.set(key, body, 'EX', process.env.REDIS_TTL);
           res.sendResponse(body)
         }
