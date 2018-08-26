@@ -13,7 +13,7 @@ const expressStatusMonitor = require('express-status-monitor');
 const multer = require('multer');
 const redis = require('redis');
 const upload = multer({ dest: path.join(__dirname, 'uploads') });
-
+const rateLimit = require("express-rate-limit");
 
 
 const TokenRoutes = require("./routes/token.route")
@@ -29,13 +29,10 @@ const cacheMiddleware = (req, res, next) => {
         return next()
       }
       if (cachedBody) {
-        console.log("---------already cached: ", cachedBody)
         return res.send(cachedBody);
       } else {
-        console.log("---------not cached: ")
         res.sendResponse = res.send
         res.send = (body) => {
-          console.log("__________________cached before send")
           redisClient.set(key, body, 'EX', process.env.REDIS_TTL);
           res.sendResponse(body)
         }
@@ -61,6 +58,22 @@ const contactController = require('./controllers/contact');
  * Create Express server.
  */
 const app = express();
+
+
+
+////////////// rate limit
+app.enable("trust proxy"); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+ 
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minutes
+  max: 500 // limit each IP to 500 requests per windowMs
+});
+ 
+//  apply to all requests
+app.use(limiter);
+
+
+
 
 app.use(session({
   secret: 'keyboard cat',
